@@ -3,9 +3,75 @@
 <head>
   <title>ShortsBlock Options</title>
   <meta charset="UTF-8">
+  <link rel="stylesheet" href="options.css">
 </head>
 <body>
-  <h1>ShortsBlock Settings</h1>
-  <p>Options page will be implemented in Phase 6</p>
+  <div class="container">
+    <header>
+      <h1>ShortsBlock Settings</h1>
+      <p class="subtitle">Control your YouTube browsing experience</p>
+    </header>
+
+    <main>
+      <div class="option">
+        <div class="option-header">
+          <label class="toggle">
+            <input type="checkbox" id="redirectHomepage">
+            <span class="slider"></span>
+          </label>
+          <div class="option-info">
+            <h3>Redirect to Subscriptions</h3>
+            <p>Automatically redirect YouTube homepage to your subscriptions feed</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="option">
+        <div class="option-header">
+          <label class="toggle">
+            <input type="checkbox" id="blockShorts">
+            <span class="slider"></span>
+          </label>
+          <div class="option-info">
+            <h3>Block YouTube Shorts</h3>
+            <p>Hide Shorts navigation buttons and redirect Shorts URLs</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="option">
+        <div class="option-header">
+          <label class="toggle">
+            <input type="checkbox" id="focusedWatch">
+            <span class="slider"></span>
+          </label>
+          <div class="option-info">
+            <h3>Focused Watch Mode</h3>
+            <p>Hide recommended videos sidebar while watching</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="option">
+        <div class="option-header">
+          <label class="toggle">
+            <input type="checkbox" id="redactComments">
+            <span class="slider"></span>
+          </label>
+          <div class="option-info">
+            <h3>Redact Comments</h3>
+            <p>Replace all comment text with "blah" for distraction-free viewing</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="save-status" id="saveStatus"></div>
+      <p class="footer-text">Changes are saved automatically</p>
+    </footer>
+  </div>
+
+  <script src="options.ts" type="module"></script>
 </body>
 </html>

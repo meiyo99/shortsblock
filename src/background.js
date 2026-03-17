@@ -1,27 +1,59 @@
 "use strict";
 // Background service worker
-// This will handle homepage redirects and declarativeNetRequest rules
-console.log('ShortsBlock background service worker loaded');
-// Phase 2: Homepage Redirect Feature
-// Redirect YouTube homepage to subscriptions feed
+// Generate a colored circle icon for the extension badge
+function generateIcon(color, size) {
+    const canvas = new OffscreenCanvas(size, size);
+    const ctx = canvas.getContext('2d');
+    // Background circle
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    // "S" letter in white
+    ctx.fillStyle = 'white';
+    ctx.font = `bold ${size * 0.55}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('S', size / 2, size / 2 + 1);
+    return ctx.getImageData(0, 0, size, size);
+}
+function updateIcon(enabled) {
+    const color = enabled ? '#667eea' : '#999999';
+    chrome.action.setIcon({
+        imageData: {
+            16: generateIcon(color, 16),
+            32: generateIcon(color, 32),
+            48: generateIcon(color, 48),
+            128: generateIcon(color, 128)
+        }
+    });
+}
+// Set initial icon state on startup
+chrome.storage.sync.get({ extensionEnabled: true }, (result) => {
+    updateIcon(result.extensionEnabled !== false);
+});
+// Listen for storage changes to update icon
+chrome.storage.onChanged.addListener((changes) => {
+    if (changes.extensionEnabled) {
+        updateIcon(changes.extensionEnabled.newValue !== false);
+    }
+});
+// Homepage Redirect Feature
 chrome.webNavigation.onCommitted.addListener((details) => {
-    // Check if the redirect feature is enabled in user preferences
-    chrome.storage.sync.get(['redirectHomepage'], (result) => {
-        // Default to true if preference not set
-        if (result.redirectHomepage !== false) {
-            try {
-                const url = new URL(details.url);
-                // Only redirect if on exact homepage (not /feed, /watch, etc.)
-                if (url.pathname === '/' || url.pathname === '') {
-                    console.log('ShortsBlock: Redirecting homepage to subscriptions');
-                    chrome.tabs.update(details.tabId, {
-                        url: 'https://www.youtube.com/feed/subscriptions'
-                    });
-                }
+    chrome.storage.sync.get(['extensionEnabled'], (result) => {
+        // Only redirect if extension is enabled
+        if (result.extensionEnabled === false)
+            return;
+        try {
+            const url = new URL(details.url);
+            if (url.pathname === '/' || url.pathname === '') {
+                chrome.tabs.update(details.tabId, {
+                    url: 'https://www.youtube.com/feed/subscriptions'
+                });
             }
-            catch (error) {
-                console.error('ShortsBlock: Error parsing URL', error);
-            }
+        }
+        catch (error) {
+            // Ignore URL parse errors
         }
     });
 }, {
@@ -30,4 +62,3 @@ chrome.webNavigation.onCommitted.addListener((details) => {
         { hostEquals: 'youtube.com' }
     ]
 });
-console.log('ShortsBlock: Homepage redirect listener registered');

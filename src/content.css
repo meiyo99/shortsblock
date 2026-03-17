@@ -1,46 +1,41 @@
-/* ShortsBlock Styles */
+/* ShortsBlock Styles
+   All rules scoped under html.shortsblock-active so they can be toggled */
 
 /* ==========================================
    Phase 3: Hide YouTube Shorts UI Elements
    ========================================== */
 
-/* Hide Shorts navigation button in sidebar */
-ytd-guide-entry-renderer[title="Shorts"],
-ytd-guide-entry-renderer a[title="Shorts"],
-ytd-mini-guide-entry-renderer[aria-label="Shorts"],
-a[title="Shorts"] {
+html.shortsblock-active ytd-guide-entry-renderer[title="Shorts"],
+html.shortsblock-active ytd-guide-entry-renderer a[title="Shorts"],
+html.shortsblock-active ytd-mini-guide-entry-renderer[aria-label="Shorts"],
+html.shortsblock-active a[title="Shorts"] {
   display: none !important;
 }
 
-/* Hide Shorts shelves in feeds (multiple selectors for robustness) */
-ytd-rich-shelf-renderer[is-shorts],
-ytd-reel-shelf-renderer,
-[is-shorts],
-ytd-reel-video-renderer {
+html.shortsblock-active ytd-rich-shelf-renderer[is-shorts],
+html.shortsblock-active ytd-reel-shelf-renderer,
+html.shortsblock-active [is-shorts],
+html.shortsblock-active ytd-reel-video-renderer {
   display: none !important;
 }
 
-/* Hide Shorts tab on channel pages */
-yt-tab-shape[tab-title="Shorts"],
-tp-yt-paper-tab:has(a[href*="/shorts"]),
-yt-tab-group-shape a[href*="/shorts"] {
+html.shortsblock-active yt-tab-shape[tab-title="Shorts"],
+html.shortsblock-active tp-yt-paper-tab:has(a[href*="/shorts"]),
+html.shortsblock-active yt-tab-group-shape a[href*="/shorts"] {
   display: none !important;
 }
 
-/* Hide Shorts button in mobile bottom navigation */
-ytm-pivot-bar-item-renderer[pivot-identifier="SHORTS"],
-ytm-pivot-bar-item-renderer[data-item-type="SHORTS"] {
+html.shortsblock-active ytm-pivot-bar-item-renderer[pivot-identifier="SHORTS"],
+html.shortsblock-active ytm-pivot-bar-item-renderer[data-item-type="SHORTS"] {
   display: none !important;
 }
 
-/* Hide any element with "shorts" in the href */
-a[href*="/shorts/"] {
+html.shortsblock-active a[href*="/shorts/"] {
   display: none !important;
 }
 
-/* Hide Shorts creation button */
-ytd-guide-entry-renderer:has(a[href*="/shorts/upload"]),
-#button[aria-label*="Create a Short"] {
+html.shortsblock-active ytd-guide-entry-renderer:has(a[href*="/shorts/upload"]),
+html.shortsblock-active #button[aria-label*="Create a Short"] {
   display: none !important;
 }
 
@@ -48,15 +43,13 @@ ytd-guide-entry-renderer:has(a[href*="/shorts/upload"]),
    Phase 4: Focused Watch Page
    ========================================== */
 
-/* Hide recommended videos in the sidebar */
-ytd-watch-next-secondary-results-renderer {
+html.shortsblock-active ytd-watch-next-secondary-results-renderer {
   display: none !important;
 }
 
-/* Hide end-screen video recommendations */
-.ytp-ce-element,
-.ytp-endscreen-content,
-.ytp-suggestion-set {
+html.shortsblock-active .ytp-ce-element,
+html.shortsblock-active .ytp-endscreen-content,
+html.shortsblock-active .ytp-suggestion-set {
   display: none !important;
 }
 
@@ -64,8 +57,7 @@ ytd-watch-next-secondary-results-renderer {
    Redirect Home button to Subscriptions
    ========================================== */
 
-/* Hide the default Home entry in sidebar */
-ytd-guide-entry-renderer:has(a[href="/"]),
-ytd-mini-guide-entry-renderer:has(a[href="/"]) {
+html.shortsblock-active ytd-guide-entry-renderer:has(a[href="/"]),
+html.shortsblock-active ytd-mini-guide-entry-renderer:has(a[href="/"]) {
   display: none !important;
 }

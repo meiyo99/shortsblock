@@ -1,13 +1,37 @@
 // Content script
-// This will handle focused watch mode and comment redaction
 
-console.log('ShortsBlock content script loaded');
+// Apply or remove the active class on <html> based on extension state
+function applyActiveState(enabled: boolean): void {
+  if (enabled) {
+    document.documentElement.classList.add('shortsblock-active');
+  } else {
+    document.documentElement.classList.remove('shortsblock-active');
+  }
+}
 
-// Phase 4: Redirect Home button clicks to subscriptions
-// Intercept clicks on the Home button in sidebar navigation
+// Check extension state and apply
+function checkAndApply(): void {
+  chrome.storage.sync.get({ extensionEnabled: true }, (result) => {
+    applyActiveState(result.extensionEnabled !== false);
+  });
+}
 
+// Apply immediately
+checkAndApply();
+
+// Listen for storage changes (user toggled on/off from popup)
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.extensionEnabled) {
+    applyActiveState(changes.extensionEnabled.newValue !== false);
+  }
+});
+
+// Redirect Home button clicks to subscriptions
 function interceptHomeClicks(): void {
   document.addEventListener('click', (e) => {
+    // Only intercept if extension is active
+    if (!document.documentElement.classList.contains('shortsblock-active')) return;
+
     const target = e.target as HTMLElement;
     const anchor = target.closest('a[href="/"]');
 
@@ -23,7 +47,115 @@ interceptHomeClicks();
 
 // Re-apply on YouTube SPA navigation
 document.addEventListener('yt-navigate-finish', () => {
-  console.log('ShortsBlock: YouTube navigation detected');
+  checkAndApply();
 });
 
-// Comment redaction will be implemented in Phase 5
+// Comment Redaction
+
+class CommentRedactor {
+  private observer: MutationObserver | null = null;
+  private processedNodes = new WeakSet<Node>();
+
+  init(): void {
+    chrome.storage.sync.get({ extensionEnabled: true, redactComments: true }, (result) => {
+      if (result.extensionEnabled !== false && result.redactComments !== false) {
+        this.startObserving();
+      }
+    });
+
+    // Listen for changes to re-init
+    chrome.storage.onChanged.addListener((changes) => {
+      if (changes.extensionEnabled || changes.redactComments) {
+        this.destroy();
+        chrome.storage.sync.get({ extensionEnabled: true, redactComments: true }, (result) => {
+          if (result.extensionEnabled !== false && result.redactComments !== false) {
+            this.startObserving();
+          }
+        });
+      }
+    });
+  }
+
+  private startObserving(): void {
+    this.observer = new MutationObserver(() => {
+      this.processComments();
+    });
+
+    const tryObserve = (): void => {
+      const commentsSection = document.querySelector('ytd-comments#comments');
+      if (commentsSection) {
+        this.observer!.observe(commentsSection, {
+          childList: true,
+          subtree: true
+        });
+        this.processComments();
+      }
+    };
+
+    tryObserve();
+
+    let attempts = 0;
+    const retryInterval = setInterval(() => {
+      attempts++;
+      const commentsSection = document.querySelector('ytd-comments#comments');
+      if (commentsSection || attempts > 20) {
+        clearInterval(retryInterval);
+        if (commentsSection) tryObserve();
+      }
+    }, 500);
+
+    document.addEventListener('yt-navigate-finish', () => {
+      setTimeout(tryObserve, 1000);
+    });
+  }
+
+  private processComments(): void {
+    const selectors = [
+      '#content-text',
+      'yt-attributed-string#content-text',
+      '#content-text span',
+      '.ytd-comment-renderer #content-text'
+    ];
+
+    let commentTexts: NodeListOf<Element> | null = null;
+    for (const selector of selectors) {
+      commentTexts = document.querySelectorAll(selector);
+      if (commentTexts.length > 0) break;
+    }
+
+    if (!commentTexts || commentTexts.length === 0) return;
+
+    commentTexts.forEach((element) => {
+      this.redactTextNodes(element);
+    });
+  }
+
+  private redactTextNodes(element: Element): void {
+    const walker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+
+    let node: Text | null;
+    while ((node = walker.nextNode() as Text | null)) {
+      if (this.processedNodes.has(node)) continue;
+      if (!node.textContent || !node.textContent.trim()) continue;
+
+      node.textContent = node.textContent
+        .split(/(\s+)/)
+        .map(part => part.trim() ? 'blah' : part)
+        .join('');
+
+      this.processedNodes.add(node);
+    }
+  }
+
+  destroy(): void {
+    this.observer?.disconnect();
+    this.observer = null;
+  }
+}
+
+const redactor = new CommentRedactor();
+redactor.init();
