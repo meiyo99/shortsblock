@@ -1,2 +1,71 @@
 /* ShortsBlock Styles */
-/* CSS rules to hide Shorts and recommended videos will be added in Phase 3-4 */
+
+/* ==========================================
+   Phase 3: Hide YouTube Shorts UI Elements
+   ========================================== */
+
+/* Hide Shorts navigation button in sidebar */
+ytd-guide-entry-renderer[title="Shorts"],
+ytd-guide-entry-renderer a[title="Shorts"],
+ytd-mini-guide-entry-renderer[aria-label="Shorts"],
+a[title="Shorts"] {
+  display: none !important;
+}
+
+/* Hide Shorts shelves in feeds (multiple selectors for robustness) */
+ytd-rich-shelf-renderer[is-shorts],
+ytd-reel-shelf-renderer,
+[is-shorts],
+ytd-reel-video-renderer {
+  display: none !important;
+}
+
+/* Hide Shorts tab on channel pages */
+yt-tab-shape[tab-title="Shorts"],
+tp-yt-paper-tab:has(a[href*="/shorts"]),
+yt-tab-group-shape a[href*="/shorts"] {
+  display: none !important;
+}
+
+/* Hide Shorts button in mobile bottom navigation */
+ytm-pivot-bar-item-renderer[pivot-identifier="SHORTS"],
+ytm-pivot-bar-item-renderer[data-item-type="SHORTS"] {
+  display: none !important;
+}
+
+/* Hide any element with "shorts" in the href */
+a[href*="/shorts/"] {
+  display: none !important;
+}
+
+/* Hide Shorts creation button */
+ytd-guide-entry-renderer:has(a[href*="/shorts/upload"]),
+#button[aria-label*="Create a Short"] {
+  display: none !important;
+}
+
+/* ==========================================
+   Phase 4: Focused Watch Page
+   ========================================== */
+
+/* Hide recommended videos in the sidebar */
+ytd-watch-next-secondary-results-renderer {
+  display: none !important;
+}
+
+/* Hide end-screen video recommendations */
+.ytp-ce-element,
+.ytp-endscreen-content,
+.ytp-suggestion-set {
+  display: none !important;
+}
+
+/* ==========================================
+   Redirect Home button to Subscriptions
+   ========================================== */
+
+/* Hide the default Home entry in sidebar */
+ytd-guide-entry-renderer:has(a[href="/"]),
+ytd-mini-guide-entry-renderer:has(a[href="/"]) {
+  display: none !important;
+}
