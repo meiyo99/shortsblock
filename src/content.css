@@ -1,41 +1,43 @@
 /* ShortsBlock Styles
-   All rules scoped under html.shortsblock-active so they can be toggled */
+   shortsblock-active: master toggle (focused watch, home redirect, explore hiding)
+   shortsblock-shorts-on: independent Shorts blocking toggle */
 
 /* ==========================================
    Phase 3: Hide YouTube Shorts UI Elements
+   (Scoped under shortsblock-shorts-on for independent toggle)
    ========================================== */
 
-html.shortsblock-active ytd-guide-entry-renderer[title="Shorts"],
-html.shortsblock-active ytd-guide-entry-renderer a[title="Shorts"],
-html.shortsblock-active ytd-mini-guide-entry-renderer[aria-label="Shorts"],
-html.shortsblock-active a[title="Shorts"] {
+html.shortsblock-shorts-on ytd-guide-entry-renderer[title="Shorts"],
+html.shortsblock-shorts-on ytd-guide-entry-renderer a[title="Shorts"],
+html.shortsblock-shorts-on ytd-mini-guide-entry-renderer[aria-label="Shorts"],
+html.shortsblock-shorts-on a[title="Shorts"] {
   display: none !important;
 }
 
-html.shortsblock-active ytd-rich-shelf-renderer[is-shorts],
-html.shortsblock-active ytd-reel-shelf-renderer,
-html.shortsblock-active [is-shorts],
-html.shortsblock-active ytd-reel-video-renderer {
+html.shortsblock-shorts-on ytd-rich-shelf-renderer[is-shorts],
+html.shortsblock-shorts-on ytd-reel-shelf-renderer,
+html.shortsblock-shorts-on [is-shorts],
+html.shortsblock-shorts-on ytd-reel-video-renderer {
   display: none !important;
 }
 
-html.shortsblock-active yt-tab-shape[tab-title="Shorts"],
-html.shortsblock-active tp-yt-paper-tab:has(a[href*="/shorts"]),
-html.shortsblock-active yt-tab-group-shape a[href*="/shorts"] {
+html.shortsblock-shorts-on yt-tab-shape[tab-title="Shorts"],
+html.shortsblock-shorts-on tp-yt-paper-tab:has(a[href*="/shorts"]),
+html.shortsblock-shorts-on yt-tab-group-shape a[href*="/shorts"] {
   display: none !important;
 }
 
-html.shortsblock-active ytm-pivot-bar-item-renderer[pivot-identifier="SHORTS"],
-html.shortsblock-active ytm-pivot-bar-item-renderer[data-item-type="SHORTS"] {
+html.shortsblock-shorts-on ytm-pivot-bar-item-renderer[pivot-identifier="SHORTS"],
+html.shortsblock-shorts-on ytm-pivot-bar-item-renderer[data-item-type="SHORTS"] {
   display: none !important;
 }
 
-html.shortsblock-active a[href*="/shorts/"] {
+html.shortsblock-shorts-on a[href*="/shorts/"] {
   display: none !important;
 }
 
-html.shortsblock-active ytd-guide-entry-renderer:has(a[href*="/shorts/upload"]),
-html.shortsblock-active #button[aria-label*="Create a Short"] {
+html.shortsblock-shorts-on ytd-guide-entry-renderer:has(a[href*="/shorts/upload"]),
+html.shortsblock-shorts-on #button[aria-label*="Create a Short"] {
   display: none !important;
 }
 
@@ -64,8 +66,8 @@ html.shortsblock-active .ytp-suggestion-set {
    Redirect Home button to Subscriptions
    ========================================== */
 
-html.shortsblock-active ytd-guide-entry-renderer:has(a[href="/"]),
-html.shortsblock-active ytd-mini-guide-entry-renderer:has(a[href="/"]) {
+html.shortsblock-redirect-on ytd-guide-entry-renderer:has(a[href="/"]),
+html.shortsblock-redirect-on ytd-mini-guide-entry-renderer:has(a[href="/"]) {
   display: none !important;
 }
 

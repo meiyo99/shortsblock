@@ -1,33 +1,34 @@
 "use strict";
 // Content script
-// Apply or remove the active class on <html> based on extension state
-function applyActiveState(enabled) {
-    if (enabled) {
-        document.documentElement.classList.add('shortsblock-active');
-    }
-    else {
-        document.documentElement.classList.remove('shortsblock-active');
-    }
-}
-// Check extension state and apply
-function checkAndApply() {
-    chrome.storage.sync.get({ extensionEnabled: true }, (result) => {
-        applyActiveState(result.extensionEnabled !== false);
+// Apply or remove CSS classes based on all feature flags
+function applyAllClasses() {
+    chrome.storage.sync.get({
+        extensionEnabled: true,
+        blockShorts: true,
+        redirectHomepage: true,
+    }, (result) => {
+        const enabled = result.extensionEnabled !== false;
+        // Master class (controls focused watch, explore hiding)
+        document.documentElement.classList.toggle('shortsblock-active', enabled);
+        // Shorts blocking (independent toggle)
+        document.documentElement.classList.toggle('shortsblock-shorts-on', enabled && result.blockShorts !== false);
+        // Homepage redirect (independent toggle)
+        document.documentElement.classList.toggle('shortsblock-redirect-on', enabled && result.redirectHomepage !== false);
     });
 }
 // Apply immediately
-checkAndApply();
+applyAllClasses();
 // Listen for storage changes (user toggled on/off from popup)
 chrome.storage.onChanged.addListener((changes) => {
-    if (changes.extensionEnabled) {
-        applyActiveState(changes.extensionEnabled.newValue !== false);
+    if (changes.extensionEnabled || changes.blockShorts || changes.redirectHomepage) {
+        applyAllClasses();
     }
 });
 // Redirect Home button clicks to subscriptions
 function interceptHomeClicks() {
     document.addEventListener('click', (e) => {
-        // Only intercept if extension is active
-        if (!document.documentElement.classList.contains('shortsblock-active'))
+        // Only intercept if redirect homepage is active
+        if (!document.documentElement.classList.contains('shortsblock-redirect-on'))
             return;
         const target = e.target;
         const anchor = target.closest('a[href="/"]');
@@ -74,7 +75,7 @@ const sidebarRetry = setInterval(() => {
 }, 500);
 // Re-apply on YouTube SPA navigation
 document.addEventListener('yt-navigate-finish', () => {
-    checkAndApply();
+    applyAllClasses();
     hideExploreSection();
 });
 // Comment Redaction

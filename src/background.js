@@ -40,9 +40,9 @@ chrome.storage.onChanged.addListener((changes) => {
 });
 // Homepage Redirect Feature
 chrome.webNavigation.onCommitted.addListener((details) => {
-    chrome.storage.sync.get(['extensionEnabled'], (result) => {
-        // Only redirect if extension is enabled
-        if (result.extensionEnabled === false)
+    chrome.storage.sync.get({ extensionEnabled: true, redirectHomepage: true }, (result) => {
+        // Only redirect if extension is enabled AND redirect homepage is on
+        if (result.extensionEnabled === false || result.redirectHomepage === false)
             return;
         try {
             const url = new URL(details.url);

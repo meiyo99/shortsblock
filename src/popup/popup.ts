@@ -3,26 +3,37 @@ document.addEventListener('DOMContentLoaded', () => {
   const popup = document.getElementById('popup')!;
   const statusDot = document.getElementById('statusDot')!;
   const statusText = document.getElementById('statusText')!;
+  const blockShortsCheckbox = document.getElementById('blockShorts') as HTMLInputElement;
+  const redirectHomepageCheckbox = document.getElementById('redirectHomepage') as HTMLInputElement;
   const redactCheckbox = document.getElementById('redactComments') as HTMLInputElement;
+
+  const featureToggles = [blockShortsCheckbox, redirectHomepageCheckbox, redactCheckbox];
 
   function updateUI(enabled: boolean): void {
     if (enabled) {
       popup.classList.remove('disabled');
       statusDot.classList.remove('off');
       statusText.textContent = 'Active on YouTube';
-      redactCheckbox.disabled = false;
+      featureToggles.forEach(t => t.disabled = false);
     } else {
       popup.classList.add('disabled');
       statusDot.classList.add('off');
       statusText.textContent = 'Paused';
-      redactCheckbox.disabled = true;
+      featureToggles.forEach(t => t.disabled = true);
     }
   }
 
   // Load saved preferences
-  chrome.storage.sync.get({ extensionEnabled: true, redactComments: true }, (result) => {
+  chrome.storage.sync.get({
+    extensionEnabled: true,
+    blockShorts: true,
+    redirectHomepage: true,
+    redactComments: true
+  }, (result) => {
     const enabled = result.extensionEnabled !== false;
     updateUI(enabled);
+    blockShortsCheckbox.checked = result.blockShorts !== false;
+    redirectHomepageCheckbox.checked = result.redirectHomepage !== false;
     redactCheckbox.checked = result.redactComments !== false;
   });
 
@@ -37,7 +48,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Redact comments toggle
+  // Feature toggles
+  blockShortsCheckbox.addEventListener('change', () => {
+    chrome.storage.sync.set({ blockShorts: blockShortsCheckbox.checked }, () => {
+      showStatus('Saved!');
+    });
+  });
+
+  redirectHomepageCheckbox.addEventListener('change', () => {
+    chrome.storage.sync.set({ redirectHomepage: redirectHomepageCheckbox.checked }, () => {
+      showStatus('Saved!');
+    });
+  });
+
   redactCheckbox.addEventListener('change', () => {
     chrome.storage.sync.set({ redactComments: redactCheckbox.checked }, () => {
       showStatus('Saved!');
