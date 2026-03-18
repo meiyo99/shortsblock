@@ -6,6 +6,7 @@ function applyAllClasses(): void {
     extensionEnabled: true,
     blockShorts: true,
     redirectHomepage: true,
+    grayscaleMode: false,
   }, (result) => {
     const enabled = result.extensionEnabled !== false;
 
@@ -19,6 +20,10 @@ function applyAllClasses(): void {
     // Homepage redirect (independent toggle)
     document.documentElement.classList.toggle('shortsblock-redirect-on',
       enabled && result.redirectHomepage !== false);
+
+    // Grayscale mode (independent toggle)
+    document.documentElement.classList.toggle('shortsblock-grayscale',
+      enabled && result.grayscaleMode === true);
   });
 }
 
@@ -27,7 +32,7 @@ applyAllClasses();
 
 // Listen for storage changes (user toggled on/off from popup)
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes.extensionEnabled || changes.blockShorts || changes.redirectHomepage) {
+  if (changes.extensionEnabled || changes.blockShorts || changes.redirectHomepage || changes.grayscaleMode) {
     applyAllClasses();
   }
 });

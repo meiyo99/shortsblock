@@ -80,3 +80,18 @@ html.shortsblock-active .shortsblock-explore-section {
   display: none !important;
 }
 
+/* ==========================================
+   v1.1: Grayscale Mode
+   Desaturate YouTube UI to reduce clickbait appeal
+   ========================================== */
+
+html.shortsblock-grayscale {
+  filter: grayscale(100%) !important;
+}
+
+/* Preserve color on the video player */
+html.shortsblock-grayscale #movie_player,
+html.shortsblock-grayscale .html5-video-container video {
+  filter: grayscale(0%) !important;
+}
+
