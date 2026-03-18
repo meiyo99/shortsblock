@@ -43,8 +43,15 @@ html.shortsblock-active #button[aria-label*="Create a Short"] {
    Phase 4: Focused Watch Page
    ========================================== */
 
+/* Hide the entire secondary sidebar container */
+html.shortsblock-active #secondary.ytd-watch-flexy,
 html.shortsblock-active ytd-watch-next-secondary-results-renderer {
   display: none !important;
+}
+
+/* Expand primary content to fill full width */
+html.shortsblock-active #primary.ytd-watch-flexy {
+  max-width: 100% !important;
 }
 
 html.shortsblock-active .ytp-ce-element,
@@ -61,3 +68,13 @@ html.shortsblock-active ytd-guide-entry-renderer:has(a[href="/"]),
 html.shortsblock-active ytd-mini-guide-entry-renderer:has(a[href="/"]) {
   display: none !important;
 }
+
+/* ==========================================
+   v1.1: Hide Explore Section from Sidebar
+   (Applied via JS - class added to the section element)
+   ========================================== */
+
+html.shortsblock-active .shortsblock-explore-section {
+  display: none !important;
+}
+

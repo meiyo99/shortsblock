@@ -39,9 +39,43 @@ function interceptHomeClicks() {
     }, true);
 }
 interceptHomeClicks();
+// Hide the Explore section by finding it via its title text
+function hideExploreSection() {
+    const sectionTitles = document.querySelectorAll('yt-formatted-string#guide-section-title');
+    sectionTitles.forEach((title) => {
+        if (title.textContent?.trim() === 'Explore') {
+            const section = title.closest('ytd-guide-section-renderer');
+            if (section && !section.classList.contains('shortsblock-explore-section')) {
+                section.classList.add('shortsblock-explore-section');
+            }
+        }
+    });
+}
+// Run on load and observe for sidebar DOM changes
+function observeSidebar() {
+    hideExploreSection();
+    const guide = document.querySelector('ytd-guide-renderer');
+    if (guide) {
+        const observer = new MutationObserver(() => {
+            hideExploreSection();
+        });
+        observer.observe(guide, { childList: true, subtree: true });
+    }
+}
+// Try immediately, retry if sidebar not loaded yet
+observeSidebar();
+let sidebarAttempts = 0;
+const sidebarRetry = setInterval(() => {
+    sidebarAttempts++;
+    observeSidebar();
+    if (document.querySelector('.shortsblock-explore-section') || sidebarAttempts > 10) {
+        clearInterval(sidebarRetry);
+    }
+}, 500);
 // Re-apply on YouTube SPA navigation
 document.addEventListener('yt-navigate-finish', () => {
     checkAndApply();
+    hideExploreSection();
 });
 // Comment Redaction
 class CommentRedactor {

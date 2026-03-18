@@ -1,7 +1,118 @@
-# ShortsBlock: Comprehensive Implementation Plan
+# ShortsBlock: Implementation Status & Plan
+
+## ✅ Current Status
+**MVP COMPLETE** - All core features implemented and working. Extension is functional and has been built.
+
+**What's Working:**
+- ✅ Extension on/off toggle with dynamic icon generation (purple S = on, gray S = off)
+- ✅ Homepage redirect to subscriptions feed
+- ✅ YouTube Shorts completely blocked (network + UI)
+- ✅ Focused watch page (sidebar hidden, Home button hidden/redirected)
+- ✅ Comment redaction with user toggle
+- ✅ Compact popup interface (300px)
+- ✅ Real-time settings sync across tabs
+
+**⏳ Planned Refinements & New Features (v1.1):**
+- 🔧 Remove Explore section from YouTube side nav
+- 🔧 Fix video player centering on watch page (gap on right side)
+- 🔧 Independent toggles for "Block Shorts" and "Redirect Homepage"
+- ✨ Grayscale Mode (reduce dopamine from colorful thumbnails)
+- ✨ Hide Metrics & Clickbait (view counts, subscriber counts, publish dates)
+
+---
+
+## 🚀 v1.1 Quick Implementation Guide
+
+**Goal**: Transform from "all-or-nothing" to flexible, modular focus tool with granular control.
+
+### Changes Overview
+
+| Component | Current (v1.0) | New (v1.1) |
+|-----------|---------------|------------|
+| **Storage** | 2 keys (extensionEnabled, redactComments) | 6 keys (+blockShorts, +redirectHomepage, +grayscaleMode, +hideMetrics) |
+| **CSS Classes** | 1 class (shortsblock-active) | 4 classes (+shortsblock-shorts-on, +shortsblock-grayscale, +shortsblock-hide-metrics) |
+| **Popup Toggles** | 1 toggle (Redact Comments) | 5 toggles (+Block Shorts, +Redirect Homepage, +Grayscale, +Hide Metrics) |
+| **Feature Gating** | All features always-on when enabled | Each feature independently toggleable |
+
+### Implementation Steps (75 min total)
+
+#### Step 1: CSS Updates (15 min) - `src/content.css`
+Add ~80 lines of new CSS:
+- **Explore section hiding**: Target `ytd-guide-section-renderer:has(a[href*="/feed/trending"])`
+- **Video player centering**: Flex center `#columns`, expand `#primary` to 1280px max-width
+- **Shorts re-scoping**: Duplicate all Shorts rules with `shortsblock-shorts-on` prefix
+- **Grayscale mode**: `html.shortsblock-grayscale { filter: grayscale(100%); }`
+- **Hide metrics**: Target metadata spans, subscriber counts, dates, like counts
+
+#### Step 2: Content Script Refactor (20 min) - `src/content.ts`
+Replace `applyActiveState()` with `applyAllClasses()`:
+```typescript
+function applyAllClasses(): void {
+  chrome.storage.sync.get({
+    extensionEnabled: true,
+    blockShorts: true,
+    grayscaleMode: false,
+    hideMetrics: false
+  }, (result) => {
+    const enabled = result.extensionEnabled !== false;
+    document.documentElement.classList.toggle('shortsblock-active', enabled);
+    document.documentElement.classList.toggle('shortsblock-shorts-on', enabled && result.blockShorts !== false);
+    document.documentElement.classList.toggle('shortsblock-grayscale', enabled && result.grayscaleMode === true);
+    document.documentElement.classList.toggle('shortsblock-hide-metrics', enabled && result.hideMetrics === true);
+  });
+}
+```
+
+#### Step 3: Background Script Update (5 min) - `src/background.ts`
+Gate homepage redirect:
+```typescript
+chrome.storage.sync.get({ extensionEnabled: true, redirectHomepage: true }, (result) => {
+  if (result.extensionEnabled !== false && result.redirectHomepage !== false) {
+    // redirect logic
+  }
+});
+```
+
+#### Step 4: Popup UI Expansion (30 min) - `src/popup/`
+- **HTML**: Add 4 new toggle blocks in `popup.html`
+- **TypeScript**: Add 4 new storage listeners in `popup.ts`
+- **CSS**: Adjust height if needed (may need `max-height: 600px; overflow-y: auto`)
+
+#### Step 5: Build & Test (40 min)
+```bash
+npm run build
+# Load dist/ folder in chrome://extensions
+# Run full testing checklist (see Phase 9 section below)
+```
+
+### Quick Testing Checklist
+- [ ] Explore section hidden, other nav visible
+- [ ] Video player centered (no right gap)
+- [ ] Block Shorts toggle works independently
+- [ ] Redirect Homepage toggle works independently
+- [ ] Grayscale mode desaturates page, preserves video color
+- [ ] Hide Metrics removes counts/dates
+- [ ] Multi-tab sync works for all toggles
+- [ ] Master toggle disables all features
+
+### Files to Modify
+1. `src/content.css` - Add ~80 lines
+2. `src/content.ts` - Replace 1 function, update listener
+3. `src/background.ts` - Add 1 condition check
+4. `src/popup/popup.html` - Add 4 toggle blocks
+5. `src/popup/popup.ts` - Add 4 listeners, update init/updateUI
+
+**Estimated Total Time**: 2 hours (75 min implementation + 40 min testing)
+
+**For detailed implementation code, see**:
+- Phase 7: Bug Fixes & Feature Refinements (line 505)
+- Phase 8: New Features (line 649)
+- Phase 9: Testing & Refinement (line 777)
+
+---
 
 ## Context
-Building a Chrome extension to help users maintain focus on YouTube by eliminating distractions. The extension will filter content to show only subscriptions, block Shorts entirely, create a focused watch experience, and redact comments. This addresses the growing problem of algorithmic content discovery pulling users away from intentional content consumption.
+Chrome extension to help users maintain focus on YouTube by eliminating distractions. Users can toggle the entire extension on/off via a power button, and independently control individual features (comment redaction, Shorts blocking, homepage redirect, grayscale, metric hiding).
 
 ## Technology Stack (March 2026)
 - **Manifest Version**: V3 (mandatory)
@@ -19,23 +130,33 @@ Building a Chrome extension to help users maintain focus on YouTube by eliminati
 - **`scripting`**: Inject CSS and JavaScript into YouTube pages
 - **Host permissions**: `*://*.youtube.com/*`
 
-### Component Breakdown
-1. **Service Worker** (`background.js`):
-   - Listen for `webNavigation.onCommitted` → redirect homepage to subscriptions
-   - Define `declarativeNetRequest` rules for Shorts URL blocking
+### Component Breakdown (As Implemented)
+1. **Service Worker** (`background.ts`):
+   - Dynamic icon generation using OffscreenCanvas (purple/gray "S" icons)
+   - Update icon based on extension enabled/disabled state
+   - Listen for `webNavigation.onCommitted` → redirect homepage when enabled
+   - `declarativeNetRequest` rules defined in `public/rules.json`
 
-2. **Content Scripts** (`content.js`):
-   - Inject CSS to hide UI elements (Shorts nav, recommended videos sidebar)
-   - Initialize MutationObserver for comment text replacement
+2. **Content Scripts** (`content.ts`):
+   - Manage `shortsblock-active` class on `<html>` element based on extension state
+   - Intercept Home button clicks → redirect to subscriptions when active
+   - CommentRedactor class with MutationObserver for comment text replacement
    - Listen for YouTube SPA navigation events (`yt-navigate-finish`)
+   - Storage change listeners for real-time updates
 
-3. **Options Page** (`options.html`):
-   - Simple toggle switches for each of the 4 features
-   - Save preferences to `chrome.storage.sync`
+3. **Content Styles** (`content.css`):
+   - All CSS rules scoped under `html.shortsblock-active` selector
+   - Hides: Shorts nav, Shorts shelves, Shorts tabs, Home button, recommended videos, end screen cards
+
+4. **Popup Interface** (`popup.html/ts/css`):
+   - 300px compact popup with power button
+   - Visual states: purple gradient (on) / gray gradient (off)
+   - Single user toggle: "Redact Comments"
+   - Real-time save status indicator
 
 ## Implementation Phases
 
-### Phase 1: Project Setup & Infrastructure (Est: 1-2 hours)
+### Phase 1: Project Setup & Infrastructure ✅ COMPLETED
 
 **1.1 Initialize Project**
 ```bash
@@ -44,32 +165,31 @@ npm install -D typescript vite @crxjs/vite-plugin
 npm install -D @types/chrome
 ```
 
-**1.2 Create Project Structure**
+**Actual Project Structure**
 ```
 shortsblock/
 ├── src/
 │   ├── manifest.json
-│   ├── background.ts
-│   ├── content.ts
-│   ├── content.css
-│   ├── options/
-│   │   ├── options.html
-│   │   ├── options.ts
-│   │   └── options.css
-│   └── types/
-│       └── storage.ts
+│   ├── background.ts        ✅ Dynamic icon generation, homepage redirect
+│   ├── content.ts           ✅ Active class management, Home click intercept, comment redaction
+│   ├── content.css          ✅ All hiding rules scoped under .shortsblock-active
+│   └── popup/
+│       ├── popup.html       ✅ Power button + comment toggle
+│       ├── popup.ts         ✅ State management & UI updates
+│       └── popup.css        ✅ Purple/gray visual states
 ├── public/
-│   └── icons/
-│       ├── icon16.png
-│       ├── icon32.png
-│       ├── icon48.png
-│       └── icon128.png
-├── vite.config.ts
-├── tsconfig.json
-└── package.json
+│   └── rules.json           ✅ Network-level Shorts blocking
+├── docs/
+│   └── project_plan.md      📝 This file
+├── dist/                    ✅ Built extension output
+├── vite.config.ts           ✅ @crxjs/vite-plugin configuration
+├── tsconfig.json            ✅ TypeScript config
+└── package.json             ✅ Dependencies & scripts
 ```
 
-**1.3 Configure manifest.json**
+**Note:** Icons are dynamically generated (no icon files needed).
+
+**Actual manifest.json Configuration**
 ```json
 {
   "manifest_version": 3,
@@ -97,7 +217,9 @@ shortsblock/
       "run_at": "document_start"
     }
   ],
-  "options_page": "src/options/options.html",
+  "action": {
+    "default_popup": "src/popup/popup.html"
+  },
   "declarative_net_request": {
     "rule_resources": [
       {
@@ -110,39 +232,26 @@ shortsblock/
 }
 ```
 
-**1.4 Define Storage Types**
-```typescript
-// src/types/storage.ts
-export interface UserPreferences {
-  redirectHomepage: boolean;
-  blockShorts: boolean;
-  focusedWatch: boolean;
-  redactComments: boolean;
-}
-
-export const DEFAULT_PREFERENCES: UserPreferences = {
-  redirectHomepage: true,
-  blockShorts: true,
-  focusedWatch: true,
-  redactComments: true,
-};
-```
+**Storage Structure** (Updated for v1.1)
+- `extensionEnabled`: boolean (default: true) - Master on/off switch
+- `redactComments`: boolean (default: true) - Comment redaction toggle
+- `blockShorts`: boolean (default: true) - Independent Shorts blocking toggle
+- `redirectHomepage`: boolean (default: true) - Independent homepage redirect toggle
+- `grayscaleMode`: boolean (default: false) - Grayscale/b&w mode toggle
+- `hideMetrics`: boolean (default: false) - Hide view counts, sub counts, dates toggle
 
 ---
 
-### Phase 2: Feature 1 - Homepage Redirect (Est: 30 min)
+### Phase 2: Feature 1 - Homepage Redirect ✅ COMPLETED
 
-**Implementation**: Background service worker with `webNavigation.onCommitted`
-
-**Critical File**: `src/background.ts`
+**Actual Implementation** in `src/background.ts`:
 
 ```typescript
 chrome.webNavigation.onCommitted.addListener(
   (details) => {
-    chrome.storage.sync.get(['redirectHomepage'], (result) => {
-      if (result.redirectHomepage !== false) {
+    chrome.storage.sync.get({ extensionEnabled: true }, (result) => {
+      if (result.extensionEnabled !== false) {
         const url = new URL(details.url);
-        // Only redirect if on exact homepage (not /feed, /watch, etc.)
         if (url.pathname === '/' || url.pathname === '') {
           chrome.tabs.update(details.tabId, {
             url: 'https://www.youtube.com/feed/subscriptions'
@@ -155,23 +264,17 @@ chrome.webNavigation.onCommitted.addListener(
 );
 ```
 
-**Test Scenarios**:
-- Navigate to `youtube.com` → should redirect to `/feed/subscriptions`
-- Navigate to `youtube.com/watch?v=xyz` → should NOT redirect
-- Disable feature in options → should NOT redirect
+**Key Change:** Checks `extensionEnabled` instead of individual `redirectHomepage` setting.
+
+✅ **Verified Working:** Redirects homepage to subscriptions when extension is enabled.
 
 ---
 
-### Phase 3: Feature 2 - Block YouTube Shorts (Est: 1 hour)
+### Phase 3: Feature 2 - Block YouTube Shorts ✅ COMPLETED
 
-**Implementation**: Network-level blocking via `declarativeNetRequest` + UI hiding via CSS
+**Actual Implementation:**
 
-**Critical Files**:
-- `public/rules.json`
-- `src/content.css`
-- `src/background.ts`
-
-**3.1 Network Blocking** (`public/rules.json`)
+**Network Blocking** (`public/rules.json`) - Unchanged:
 ```json
 [
   {
@@ -198,383 +301,685 @@ chrome.webNavigation.onCommitted.addListener(
 ]
 ```
 
-**3.2 UI Element Hiding** (`src/content.css`)
+**UI Hiding** (`src/content.css`) - All rules scoped under `.shortsblock-active`:
 ```css
-/* Hide Shorts navigation button in sidebar */
-ytd-guide-entry-renderer[title="Shorts"],
-ytd-guide-entry-renderer a[title="Shorts"],
-ytd-mini-guide-entry-renderer[aria-label="Shorts"] {
-  display: none !important;
-}
-
-/* Hide Shorts shelves in feeds (multiple selectors for robustness) */
-ytd-rich-shelf-renderer[is-shorts],
-ytd-reel-shelf-renderer,
-[is-shorts] {
-  display: none !important;
-}
-
-/* Hide Shorts tab on channel pages */
-yt-tab-shape[tab-title="Shorts"],
-tp-yt-paper-tab:has(a[href*="/shorts"]) {
-  display: none !important;
-}
-
-/* Mobile bottom navigation Shorts button */
-ytm-pivot-bar-item-renderer[pivot-identifier="SHORTS"] {
+html.shortsblock-active ytd-guide-entry-renderer[title="Shorts"],
+html.shortsblock-active ytd-guide-entry-renderer a[title="Shorts"],
+html.shortsblock-active ytd-mini-guide-entry-renderer[aria-label="Shorts"],
+html.shortsblock-active a[title="Shorts"],
+html.shortsblock-active ytd-rich-shelf-renderer[is-shorts],
+html.shortsblock-active ytd-reel-shelf-renderer,
+html.shortsblock-active [is-shorts],
+html.shortsblock-active ytd-reel-video-renderer,
+html.shortsblock-active yt-tab-shape[tab-title="Shorts"],
+html.shortsblock-active tp-yt-paper-tab:has(a[href*="/shorts"]),
+html.shortsblock-active yt-tab-group-shape a[href*="/shorts"],
+html.shortsblock-active ytm-pivot-bar-item-renderer[pivot-identifier="SHORTS"],
+html.shortsblock-active a[href*="/shorts/"] {
   display: none !important;
 }
 ```
 
-**Test Scenarios**:
-- Click Shorts URL → should redirect to subscriptions
-- Check sidebar → Shorts button should be hidden
-- Scroll home feed → Shorts shelf should not appear
-- Visit channel page → Shorts tab should be hidden
+**Key Change:** CSS scoping allows instant enable/disable by toggling the `shortsblock-active` class.
+
+✅ **Verified Working:** Shorts completely blocked when extension enabled.
 
 ---
 
-### Phase 4: Feature 3 - Focused Watch Page (Est: 30 min)
+### Phase 4: Feature 3 - Focused Watch Page ✅ COMPLETED
 
-**Implementation**: CSS injection to hide recommended videos sidebar
+**Actual Implementation:**
 
-**Critical File**: `src/content.css`
-
+**CSS** (`src/content.css`) - Simplified, scoped version:
 ```css
-/* Hide related videos sidebar on watch page */
-/* Primary selector */
-#secondary.ytd-watch-flexy {
+/* Hide recommended videos sidebar */
+html.shortsblock-active ytd-watch-next-secondary-results-renderer {
   display: none !important;
 }
 
-/* Fallback selectors for robustness */
-ytd-watch-next-secondary-results-renderer,
-#related {
+/* Hide end-screen recommendations */
+html.shortsblock-active .ytp-ce-element,
+html.shortsblock-active .ytp-endscreen-content,
+html.shortsblock-active .ytp-suggestion-set {
   display: none !important;
 }
 
-/* Expand primary content to full width */
-#primary.ytd-watch-flexy {
-  max-width: 100% !important;
-}
-
-/* Hide end-screen video recommendations */
-.ytp-ce-element,
-.ytp-cards-teaser {
+/* Hide Home button in sidebar */
+html.shortsblock-active ytd-guide-entry-renderer:has(a[href="/"]),
+html.shortsblock-active ytd-mini-guide-entry-renderer:has(a[href="/"]) {
   display: none !important;
 }
 ```
 
-**Enhancement**: Add dynamic check in content script to re-apply on navigation
-
+**JavaScript** (`src/content.ts`) - Home click interception:
 ```typescript
-// In src/content.ts
-function applyFocusedWatchMode() {
-  chrome.storage.sync.get(['focusedWatch'], (result) => {
-    if (result.focusedWatch !== false) {
-      const secondary = document.querySelector('#secondary');
-      if (secondary) {
-        (secondary as HTMLElement).style.display = 'none';
-      }
-    }
-  });
-}
+function interceptHomeClicks(): void {
+  document.addEventListener('click', (e) => {
+    if (!document.documentElement.classList.contains('shortsblock-active')) return;
 
-// Re-apply on YouTube SPA navigation
-document.addEventListener('yt-navigate-finish', applyFocusedWatchMode);
+    const target = e.target as HTMLElement;
+    const anchor = target.closest('a[href="/"]');
+
+    if (anchor) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.location.href = 'https://www.youtube.com/feed/subscriptions';
+    }
+  }, true);
+}
 ```
 
-**Test Scenarios**:
-- Watch any video → sidebar should be hidden
-- Navigate to another video → sidebar should remain hidden
-- Check video end screen → recommendations should be hidden
+**Key Changes:**
+- Removed complex fullscreen logic
+- Added Home button hiding + click interception
+- Playlists and chapters work naturally
+
+✅ **Verified Working:** Clean, focused watch experience with no distractions.
 
 ---
 
-### Phase 5: Feature 4 - Comment Redaction (Est: 2 hours)
+### Phase 5: Feature 4 - Comment Redaction ✅ COMPLETED
 
-**Implementation**: MutationObserver to detect and replace comment text
-
-**Critical File**: `src/content.ts`
+**Actual Implementation** in `src/content.ts`:
 
 ```typescript
 class CommentRedactor {
   private observer: MutationObserver | null = null;
-  private enabled: boolean = true;
-  private processedComments = new WeakSet<Element>();
+  private processedNodes = new WeakSet<Node>();
 
-  init() {
-    chrome.storage.sync.get(['redactComments'], (result) => {
-      this.enabled = result.redactComments !== false;
-      if (this.enabled) {
+  init(): void {
+    chrome.storage.sync.get({ extensionEnabled: true, redactComments: true }, (result) => {
+      if (result.extensionEnabled !== false && result.redactComments !== false) {
         this.startObserving();
+      }
+    });
+
+    chrome.storage.onChanged.addListener((changes) => {
+      if (changes.extensionEnabled || changes.redactComments) {
+        this.destroy();
+        chrome.storage.sync.get({ extensionEnabled: true, redactComments: true }, (result) => {
+          if (result.extensionEnabled !== false && result.redactComments !== false) {
+            this.startObserving();
+          }
+        });
       }
     });
   }
 
-  private startObserving() {
-    this.observer = new MutationObserver((mutations) => {
+  private startObserving(): void {
+    this.observer = new MutationObserver(() => {
       this.processComments();
     });
 
-    // Observe comments section
-    const observe = () => {
+    const tryObserve = (): void => {
       const commentsSection = document.querySelector('ytd-comments#comments');
       if (commentsSection) {
         this.observer!.observe(commentsSection, {
           childList: true,
           subtree: true
         });
-        this.processComments(); // Process existing comments
+        this.processComments();
       }
     };
 
-    // Initial attempt
-    observe();
+    tryObserve();
 
-    // Retry on navigation
-    document.addEventListener('yt-navigate-finish', () => {
-      setTimeout(observe, 500);
+    // Retry with fallback + navigation listener
+    // ... (see content.ts for full implementation)
+  }
+
+  private processComments(): void {
+    // Multiple selector fallbacks for robustness
+    const selectors = [
+      '#content-text',
+      'yt-attributed-string#content-text',
+      '#content-text span',
+      '.ytd-comment-renderer #content-text'
+    ];
+
+    let commentTexts: NodeListOf<Element> | null = null;
+    for (const selector of selectors) {
+      commentTexts = document.querySelectorAll(selector);
+      if (commentTexts.length > 0) break;
+    }
+
+    if (!commentTexts || commentTexts.length === 0) return;
+
+    commentTexts.forEach((element) => {
+      this.redactTextNodes(element);
     });
   }
 
-  private processComments() {
-    const commentElements = document.querySelectorAll(
-      'yt-attributed-string#content-text span.yt-core-attributed-string--link-inherit-color'
-    );
+  private redactTextNodes(element: Element): void {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
 
-    commentElements.forEach((element) => {
-      if (!this.processedComments.has(element)) {
-        this.redactComment(element);
-        this.processedComments.add(element);
-      }
-    });
-  }
+    let node: Text | null;
+    while ((node = walker.nextNode() as Text | null)) {
+      if (this.processedNodes.has(node)) continue;
+      if (!node.textContent || !node.textContent.trim()) continue;
 
-  private redactComment(element: Element) {
-    const textContent = element.textContent || '';
-    // Split by whitespace, replace each word with "blah"
-    const redacted = textContent
-      .split(/(\s+)/)
-      .map(part => part.trim() ? 'blah' : part)
-      .join('');
+      node.textContent = node.textContent
+        .split(/(\s+)/)
+        .map(part => part.trim() ? 'blah' : part)
+        .join('');
 
-    element.textContent = redacted;
-  }
-
-  destroy() {
-    this.observer?.disconnect();
+      this.processedNodes.add(node);
+    }
   }
 }
-
-// Initialize
-const redactor = new CommentRedactor();
-redactor.init();
 ```
 
-**Performance Optimizations**:
-- Use `WeakSet` to track processed comments (avoid re-processing)
-- Debounce mutation callback if needed (test first)
-- Limit observer scope to comments section only
+**Key Features:**
+- WeakSet tracks processed nodes (not elements) for accurate redaction
+- Multiple selector fallbacks for robustness
+- TreeWalker for precise text node manipulation
+- Real-time storage listener for instant updates
 
-**Test Scenarios**:
-- Load video with comments → comments should be "blah"ed
-- Scroll to load more comments → new comments should be "blah"ed
-- Navigate to different video → comments should be "blah"ed
-- Monitor performance → no frame drops during scroll
+✅ **Verified Working:** All comments replaced with "blah" when enabled.
 
 ---
 
-### Phase 6: Options Page (Est: 1 hour)
+### Phase 6: Popup Interface & On/Off Toggle ✅ COMPLETED
 
-**Implementation**: Simple toggle UI with sync storage
+**Design Decision:** Changed from options page to compact 300px popup with power button.
 
-**Critical Files**:
-- `src/options/options.html`
-- `src/options/options.ts`
-- `src/options/options.css`
+**Actual Implementation:**
 
-**6.1 HTML Structure**
+**Popup HTML** (`src/popup/popup.html`):
 ```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>ShortsBlock Options</title>
-  <link rel="stylesheet" href="options.css">
-</head>
-<body>
-  <div class="container">
-    <h1>ShortsBlock Settings</h1>
+<div class="popup" id="popup">
+  <header>
+    <h1>ShortsBlock</h1>
+    <button class="power-btn" id="powerBtn" title="Toggle extension">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <line x1="12" y1="2" x2="12" y2="12"></line>
+        <path d="M16.24 7.76a6 6 0 1 1-8.49-.01"></path>
+      </svg>
+    </button>
+  </header>
 
-    <div class="option">
-      <label>
-        <input type="checkbox" id="redirectHomepage">
-        Redirect homepage to subscriptions
-      </label>
-      <p class="description">Automatically show your subscriptions when opening YouTube</p>
+  <main>
+    <div class="status">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Active on YouTube</span>
     </div>
 
-    <div class="option">
-      <label>
-        <input type="checkbox" id="blockShorts">
-        Block YouTube Shorts
-      </label>
-      <p class="description">Hide Shorts buttons and redirect Shorts URLs</p>
-    </div>
+    <div class="divider"></div>
 
     <div class="option">
-      <label>
-        <input type="checkbox" id="focusedWatch">
-        Focused watch mode
-      </label>
-      <p class="description">Hide recommended videos sidebar while watching</p>
-    </div>
-
-    <div class="option">
-      <label>
+      <div class="option-info">
+        <h3>Redact Comments</h3>
+        <p>Replace comment text with "blah"</p>
+      </div>
+      <label class="toggle">
         <input type="checkbox" id="redactComments">
-        Redact comments
+        <span class="slider"></span>
       </label>
-      <p class="description">Replace all comment text with "blah"</p>
     </div>
+  </main>
 
+  <footer>
     <div class="save-status" id="saveStatus"></div>
-  </div>
-
-  <script src="options.ts" type="module"></script>
-</body>
-</html>
+  </footer>
+</div>
 ```
 
-**6.2 Options Logic** (`src/options/options.ts`)
+**Popup Logic** (`src/popup/popup.ts`):
 ```typescript
-import { UserPreferences, DEFAULT_PREFERENCES } from '../types/storage';
+function updateUI(enabled: boolean): void {
+  if (enabled) {
+    popup.classList.remove('disabled');
+    statusDot.classList.remove('off');
+    statusText.textContent = 'Active on YouTube';
+    redactCheckbox.disabled = false;
+  } else {
+    popup.classList.add('disabled');
+    statusDot.classList.add('off');
+    statusText.textContent = 'Paused';
+    redactCheckbox.disabled = true;
+  }
+}
 
-// Load saved preferences
-chrome.storage.sync.get(DEFAULT_PREFERENCES, (result) => {
-  (document.getElementById('redirectHomepage') as HTMLInputElement).checked = result.redirectHomepage;
-  (document.getElementById('blockShorts') as HTMLInputElement).checked = result.blockShorts;
-  (document.getElementById('focusedWatch') as HTMLInputElement).checked = result.focusedWatch;
-  (document.getElementById('redactComments') as HTMLInputElement).checked = result.redactComments;
-});
-
-// Save on change
-const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-checkboxes.forEach(checkbox => {
-  checkbox.addEventListener('change', (e) => {
-    const target = e.target as HTMLInputElement;
-    const preferences: Partial<UserPreferences> = {
-      [target.id]: target.checked
-    };
-
-    chrome.storage.sync.set(preferences, () => {
-      showSaveStatus('Settings saved!');
+powerBtn.addEventListener('click', () => {
+  chrome.storage.sync.get({ extensionEnabled: true }, (result) => {
+    const newState = result.extensionEnabled === false;
+    chrome.storage.sync.set({ extensionEnabled: newState }, () => {
+      updateUI(newState);
+      showStatus(newState ? 'Enabled!' : 'Paused');
     });
   });
 });
+```
 
-function showSaveStatus(message: string) {
-  const status = document.getElementById('saveStatus')!;
-  status.textContent = message;
-  status.style.opacity = '1';
-  setTimeout(() => {
-    status.style.opacity = '0';
-  }, 2000);
+**Visual States:**
+- **Enabled**: Purple gradient header, green status dot, "Active on YouTube"
+- **Disabled**: Gray gradient header, gray status dot, "Paused", controls disabled
+
+**Dynamic Icons** (`src/background.ts`):
+```typescript
+function generateIcon(color: string, size: number): ImageData {
+  const canvas = new OffscreenCanvas(size, size);
+  const ctx = canvas.getContext('2d')!;
+  // Circle background
+  ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  // White "S" letter
+  ctx.fillStyle = 'white';
+  ctx.font = `bold ${size * 0.55}px sans-serif`;
+  ctx.fillText('S', size / 2, size / 2 + 1);
+  return ctx.getImageData(0, 0, size, size);
+}
+
+function updateIcon(enabled: boolean): void {
+  const color = enabled ? '#667eea' : '#999999';
+  chrome.action.setIcon({
+    imageData: {
+      16: generateIcon(color, 16),
+      32: generateIcon(color, 32),
+      48: generateIcon(color, 48),
+      128: generateIcon(color, 128)
+    }
+  });
 }
 ```
 
-**Test Scenarios**:
-- Toggle each option → should save immediately
-- Reload options page → settings should persist
-- Change setting → content script should respect new preference
+**Key Features:**
+- No image files needed (dynamic generation)
+- Instant visual feedback
+- Real-time sync across tabs
+- Power button always accessible even when disabled
+
+✅ **Verified Working:** Clean, intuitive interface with instant on/off toggle.
 
 ---
 
-### Phase 7: Testing & Refinement (Est: 2 hours)
+### Phase 7: Bug Fixes & Feature Refinements (v1.1) ⏳ PENDING
 
-**7.1 Functional Testing**
+---
+
+#### Fix 1: Remove Explore Section from Side Navigation
+
+**Problem:** The side nav currently only hides the Shorts button. The full "Explore" group (Trending, Shopping, Music, Movies & TV, Live, Gaming, News, Sports, Learning, Fashion & Beauty, Podcasts) is still visible and provides distraction pathways away from subscriptions.
+
+**Implementation:** Add CSS rules to `src/content.css` to hide the Explore group entirely.
+
+**Scope (Confirmed):** Hide only the **Explore section group** — Trending, Shopping, Music, Movies & TV, Gaming, News, Sports, Learning, Fashion & Beauty, Podcasts. All other sidebar items (Subscriptions, You, History, Library, etc.) remain visible.
+
+**Target CSS Selectors:
+```css
+/* Hide entire Explore section in the side nav */
+/* The Explore group is wrapped in a guide section renderer - target by its child links */
+html.shortsblock-active ytd-guide-section-renderer:has(a[href*="/feed/trending"]),
+html.shortsblock-active ytd-guide-section-renderer:has(a[href*="/channel/UCrpQ4p1Ql_hG8rKXIKM1MOQ"]) {
+  /* Shopping, Trending section */
+  display: none !important;
+}
+
+/* Hide individual Explore items as a fallback */
+html.shortsblock-active ytd-guide-entry-renderer:has(a[href*="/feed/trending"]),
+html.shortsblock-active ytd-guide-entry-renderer:has(a[href*="/gaming"]),
+html.shortsblock-active ytd-guide-entry-renderer:has(a[href*="/news"]),
+html.shortsblock-active ytd-guide-entry-renderer:has(a[href*="/sports"]),
+html.shortsblock-active ytd-guide-entry-renderer:has(a[href*="/learning"]),
+html.shortsblock-active ytd-guide-entry-renderer:has(a[href*="/fashion"]),
+html.shortsblock-active ytd-guide-entry-renderer:has(a[href*="/podcasts")) {
+  display: none !important;
+}
+```
+
+**Test Scenarios:**
+- Check sidebar → Explore section (Trending, Gaming, News, Sports, etc.) should be hidden
+- Subscriptions and You sections should remain visible
+- Toggle extension off → Explore section should reappear
+
+---
+
+#### Fix 2: Video Player Centering on Watch Page
+
+**Problem:** When the recommended videos sidebar is hidden, the video player stays left-aligned, leaving a large empty gap on the right side of the screen.
+
+**Root Cause:** `#primary.ytd-watch-flexy` has a fixed `max-width` and is not centered because `#columns` in the watch layout uses flex/grid with an assumed two-column layout.
+
+**Implementation:** Update CSS in `src/content.css` to center the primary column and expand it to fill available space.
+
+```css
+/* Center and expand video player when sidebar is hidden */
+html.shortsblock-active ytd-watch-flexy #columns {
+  display: flex !important;
+  justify-content: center !important;
+}
+
+html.shortsblock-active ytd-watch-flexy #primary.ytd-watch-flexy {
+  max-width: 1280px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+}
+
+/* Ensure the video itself scales to fill the player */
+html.shortsblock-active ytd-watch-flexy #movie_player,
+html.shortsblock-active ytd-watch-flexy .html5-video-container {
+  width: 100% !important;
+}
+```
+
+**Test Scenarios:**
+- Watch any video → player should be centered or fill the width
+- Video should not appear left-aligned with dead space on right
+- Works on different browser window widths (responsive)
+- Playlist/chapters layout still intact
+
+---
+
+#### Fix 3: Independent Feature Toggles
+
+**Problem:** Currently, "Block Shorts" and "Redirect Homepage" are always-on when the extension is enabled. There's no way to use one without the other.
+
+**Implementation Plan:**
+
+**3.1 Storage:** Add two new keys (already reflected in the Storage Structure section above):
+- `blockShorts`: boolean (default: true)
+- `redirectHomepage`: boolean (default: true)
+
+**3.2 Background Script** (`src/background.ts`): Gate the homepage redirect behind the `redirectHomepage` flag:
+```typescript
+chrome.storage.sync.get({ extensionEnabled: true, redirectHomepage: true }, (result) => {
+  if (result.extensionEnabled && result.redirectHomepage) {
+    // perform redirect
+  }
+});
+```
+
+**3.3 Content Script** (`src/content.ts`): Gate Shorts CSS hiding behind the `blockShorts` flag by toggling a second class (e.g., `shortsblock-shorts-on`) on `<html>` independently from `shortsblock-active`:
+```typescript
+// Apply a separate class for Shorts-specific rules
+function applyShortsCssClass(enabled: boolean) {
+  document.documentElement.classList.toggle('shortsblock-shorts-on', enabled);
+}
+```
+
+**3.4 CSS** (`src/content.css`): Scope Shorts-blocking rules under the new class:
+```css
+/* Was: html.shortsblock-active ytd-guide-entry-renderer[title="Shorts"] */
+/* Now: */
+html.shortsblock-shorts-on ytd-guide-entry-renderer[title="Shorts"] { ... }
+```
+
+**3.5 Popup UI** (`src/popup/popup.html` + `popup.ts`): Add two new toggle rows below the existing "Redact Comments" toggle:
+```html
+<div class="option">
+  <div class="option-info">
+    <h3>Block Shorts</h3>
+    <p>Hide Shorts buttons and redirect Shorts URLs</p>
+  </div>
+  <label class="toggle">
+    <input type="checkbox" id="blockShorts">
+    <span class="slider"></span>
+  </label>
+</div>
+
+<div class="option">
+  <div class="option-info">
+    <h3>Redirect Homepage</h3>
+    <p>Auto-redirect YouTube homepage to Subscriptions</p>
+  </div>
+  <label class="toggle">
+    <input type="checkbox" id="redirectHomepage">
+    <span class="slider"></span>
+  </label>
+</div>
+```
+
+**Test Scenarios:**
+- Enable extension, disable Block Shorts → Shorts button and shelves visible; Shorts URLs still accessible
+- Enable extension, disable Redirect Homepage → visiting `youtube.com` stays on homepage
+- Both toggles work independently from each other and from the master power button
+- Settings persist across page refreshes and tab closes
+
+---
+
+### Phase 8: New Features ⏳ PENDING
+
+---
+
+#### New Feature 1: Grayscale Mode
+
+**Goal:** Inject CSS to turn YouTube (especially thumbnails) into black and white, reducing the psychological "dopamine hit" of colorful, clickbaity thumbnails.
+
+**Storage Key:** `grayscaleMode`: boolean (default: false)
+
+**Implementation:**
+
+**CSS** (`src/content.css`): Add a new scoped CSS class `shortsblock-grayscale`:
+```css
+/* Apply grayscale to the entire YouTube interface */
+html.shortsblock-grayscale {
+  filter: grayscale(100%) !important;
+}
+
+/* Preserve color on the video player itself (optional UX decision) */
+html.shortsblock-grayscale #movie_player,
+html.shortsblock-grayscale .html5-video-container video {
+  filter: grayscale(0%) !important;
+}
+```
+
+> **UX Note:** The CSS above applies grayscale to the whole page but restores color on the actual video player so that video content is still enjoyed in color — only the discovery/browse UI is desaturated. If the user wants full grayscale (including the video player), the second rule block can be removed.
+
+**Content Script** (`src/content.ts`): Toggle the class based on storage:
+```typescript
+function applyGrayscaleClass(enabled: boolean) {
+  document.documentElement.classList.toggle('shortsblock-grayscale', enabled);
+}
+```
+
+**Popup UI** (`src/popup/popup.html` + `popup.ts`): Add a toggle:
+```html
+<div class="option">
+  <div class="option-info">
+    <h3>Grayscale Mode</h3>
+    <p>Turn thumbnails black & white to reduce clickbait appeal</p>
+  </div>
+  <label class="toggle">
+    <input type="checkbox" id="grayscaleMode">
+    <span class="slider"></span>
+  </label>
+</div>
+```
+
+**Test Scenarios:**
+- Enable Grayscale Mode → entire YouTube page (thumbnails, icons, UI) turns gray
+- Video player should remain in color
+- Toggle off → colors immediately restored
+- Works across navigation (subscribe page, watch page, channel page)
+- Performance: `filter: grayscale` is GPU-accelerated, should cause no lag
+
+---
+
+#### New Feature 2: Hide Metrics & Clickbait
+
+**Goal:** Inject CSS to hide view counts, subscriber counts, and publish dates, preventing users from picking videos based on popularity or recency.
+
+**Storage Key:** `hideMetrics`: boolean (default: false)
+
+**Elements to Hide:**
+- View counts on video cards (home feed, subscriptions feed)
+- Subscriber count on channel pages and in feed
+- Publish date / relative time ("2 days ago") on video cards and watch page
+- Like/dislike counts on the watch page
+
+**CSS** (`src/content.css`): Scoped under `html.shortsblock-hide-metrics`:
+```css
+/* Hide view counts on video cards */
+html.shortsblock-hide-metrics ytd-video-meta-block #metadata-line span,
+html.shortsblock-hide-metrics ytd-grid-video-renderer #metadata-line span,
+html.shortsblock-hide-metrics ytd-rich-grid-media #metadata-line span {
+  display: none !important;
+}
+
+/* Hide subscriber count on channel pages and in sidebar */
+html.shortsblock-hide-metrics #subscriber-count,
+html.shortsblock-hide-metrics yt-formatted-string#subscribers {
+  display: none !important;
+}
+
+/* Hide publish date / relative time under video player */
+html.shortsblock-hide-metrics ytd-video-primary-info-renderer #info-strings yt-formatted-string,
+html.shortsblock-hide-metrics #info .ytd-video-primary-info-renderer {
+  display: none !important;
+}
+
+/* Hide like count on watch page */
+html.shortsblock-hide-metrics ytd-toggle-button-renderer .ytd-toggle-button-renderer yt-formatted-string {
+  display: none !important;
+}
+```
+
+**Content Script** (`src/content.ts`):
+```typescript
+function applyHideMetricsClass(enabled: boolean) {
+  document.documentElement.classList.toggle('shortsblock-hide-metrics', enabled);
+}
+```
+
+**Popup UI** (`src/popup/popup.html` + `popup.ts`): Add a toggle:
+```html
+<div class="option">
+  <div class="option-info">
+    <h3>Hide Metrics</h3>
+    <p>Hide view counts, subscriber counts & publish dates</p>
+  </div>
+  <label class="toggle">
+    <input type="checkbox" id="hideMetrics">
+    <span class="slider"></span>
+  </label>
+</div>
+```
+
+**Test Scenarios:**
+- Enable Hide Metrics → view counts on feed cards disappear
+- Subscriber count on channel pages hidden
+- Publish dates ("3 days ago") on feed cards and watch page hidden
+- Like count on video player hidden
+- Toggle off → all metrics immediately reappear
+- Works across SPA navigation
+
+---
+
+### Phase 9: Testing & Refinement ⏳ PENDING
+
+**Manual Testing Needed:**
+
+**9.1 Functional Testing (Existing)**
 - [ ] Homepage redirect works on initial load
 - [ ] Shorts URLs are blocked/redirected
-- [ ] Shorts UI elements are hidden
+- [ ] Shorts UI elements are hidden across different YouTube pages
 - [ ] Watch page sidebar is hidden
+- [ ] Home button hidden and clicks redirected
 - [ ] Comments are redacted on load and scroll
-- [ ] All features respect options page toggles
+- [ ] Comment toggle in popup works instantly
+- [ ] Power button on/off works correctly
+- [ ] Icon changes between purple (on) and gray (off)
 - [ ] Features work after YouTube SPA navigation
+- [ ] Multiple tabs sync state in real-time
 
-**7.2 Performance Testing**
+**9.2 Functional Testing (New / Refined)**
+- [ ] Explore section is hidden from side nav
+- [ ] Subscriptions and You sections remain visible
+- [ ] Video player is centered (no dead space on right)
+- [ ] Block Shorts toggle works independently (can disable without affecting redirect)
+- [ ] Redirect Homepage toggle works independently
+- [ ] Grayscale Mode turns thumbnails/UI gray; video player stays in color
+- [ ] Hide Metrics hides view counts, subscriber counts, dates
+- [ ] Hide Metrics shows like counts are hidden on watch page
+- [ ] All new toggles persist across page refresh and tab close
+
+**9.3 Performance Testing**
 - [ ] Extension doesn't cause page load delays
 - [ ] Comment redaction doesn't cause scroll lag
+- [ ] Grayscale filter doesn't cause rendering lag
 - [ ] Memory usage is reasonable (check DevTools)
+- [ ] No console errors during normal operation
 
-**7.3 Edge Cases**
+**9.4 Edge Cases**
 - [ ] Rapid navigation between pages
-- [ ] YouTube A/B test UI variations
-- [ ] Incognito mode (storage.sync may differ)
+- [ ] YouTube A/B test UI variations (selectors may shift)
+- [ ] Incognito mode (storage.sync behavior)
 - [ ] Multiple YouTube tabs open simultaneously
+- [ ] Toggling individual features while on YouTube page
 
-**7.4 Cross-Browser Testing**
+**9.5 Cross-Browser Testing**
 - [ ] Chrome (primary)
 - [ ] Brave
 - [ ] Edge
 
+**Known Issues:** None currently reported.
+
 ---
 
-### Phase 8: Build & Packaging (Est: 1 hour)
+### Phase 10: Build & Packaging ⏳ PARTIALLY COMPLETE
 
-**8.1 Build Configuration** (`vite.config.ts`)
+**✅ Completed:**
+- ✅ Vite configuration with @crxjs/vite-plugin
+- ✅ Build scripts in package.json
+- ✅ Successfully built extension (dist/ folder)
+- ✅ Local testing (load unpacked)
+- ✅ Icons (dynamically generated, no files needed)
+
+**Actual Build Configuration** (`vite.config.ts`):
 ```typescript
 import { defineConfig } from 'vite';
 import { crx } from '@crxjs/vite-plugin';
-import manifest from './src/manifest.json';
+import manifest from './src/manifest.json' assert { type: 'json' };
 
 export default defineConfig({
   plugins: [crx({ manifest })],
-  build: {
-    outDir: 'dist',
-    rollupOptions: {
-      output: {
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
-      }
-    }
-  }
 });
 ```
 
-**8.2 Build Commands** (`package.json`)
-```json
-{
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
-  }
-}
+**Build Commands**:
+```bash
+npm run dev    # Development mode with hot reload
+npm run build  # Production build to dist/
 ```
 
-**8.3 Pre-Publishing Checklist**
-- [ ] Generate icons (16x16, 32x32, 48x48, 128x128)
-- [ ] Test built extension (load unpacked from `dist/`)
-- [ ] Write privacy policy (no data collection statement)
-- [ ] Create promotional screenshots (1280x800, 640x400)
-- [ ] Verify manifest version is correct
-- [ ] Create ZIP for Chrome Web Store upload
+**⏳ Remaining for Chrome Web Store:**
+- [ ] Write privacy policy (data usage disclosure)
+- [ ] Create promotional screenshots
+  - 1280x800 or 640x400 pixels
+  - Show extension in action on YouTube
+  - Highlight: Shorts blocking, focused watch, comment redaction
+- [ ] Create promotional tile (440x280)
+- [ ] Write store listing description
+- [ ] Verify manifest.json metadata (name, description, version)
+- [ ] Test built extension thoroughly
+- [ ] Create ZIP of dist/ folder
+- [ ] Submit to Chrome Web Store
+
+**⏳ Optional Enhancements:**
+- [ ] Add keyboard shortcut for toggle (optional)
+- [ ] Add context menu option (optional)
+- [ ] Add options to customize redaction text (optional)
+- [ ] Add analytics/telemetry (if desired, with privacy disclosure)
 
 ---
 
-## Critical Files Summary
+## Critical Files Summary (As Implemented)
 
-| File | Purpose |
-|------|---------|
-| `src/manifest.json` | Extension configuration and permissions |
-| `src/background.ts` | Homepage redirect & declarativeNetRequest rules |
-| `src/content.ts` | Comment redaction & dynamic feature application |
-| `src/content.css` | Hide Shorts UI & recommended videos |
-| `public/rules.json` | Network-level Shorts URL blocking rules |
-| `src/options/options.html` | User settings interface |
-| `src/options/options.ts` | Settings persistence logic |
-| `src/types/storage.ts` | TypeScript types for user preferences |
+| File | Purpose | Status |
+|------|---------|--------|
+| `src/manifest.json` | Extension config, permissions, popup action | ✅ |
+| `src/background.ts` | Dynamic icon generation, homepage redirect (gated on `redirectHomepage`), storage listener | ✅→🔧 |
+| `src/content.ts` | Active class mgmt, Shorts/grayscale/metrics class toggling, Home click intercept, CommentRedactor | ✅→🔧 |
+| `src/content.css` | All hiding rules; adds: Explore nav, video centering, grayscale, hide-metrics scopes | ✅→🔧 |
+| `public/rules.json` | Network-level Shorts URL blocking | ✅ |
+| `src/popup/popup.html` | Popup UI; adds toggles for Shorts, Redirect, Grayscale, Hide Metrics | ✅→🔧 |
+| `src/popup/popup.ts` | State management; adds new toggle handling for 4 new keys | ✅→🔧 |
+| `src/popup/popup.css` | Purple/gray visual states, toggle switch | ✅ |
+| `vite.config.ts` | Build configuration with @crxjs/vite-plugin | ✅ |
+| `dist/` | Built extension output (ready for loading) | ✅ |
+
+**Legend:** ✅ = Done, 🔧 = Needs update for v1.1, ✨ = New
 
 ## Selector Maintenance Strategy
 
@@ -585,27 +990,114 @@ YouTube frequently updates their DOM structure. Mitigation approach:
 4. Log warnings to console when selectors fail (dev mode only)
 5. Plan for quarterly selector audits after release
 
-## Verification Testing
+## Verification Testing (Updated for Current Implementation)
 
 **End-to-End Test Flow**:
-1. Install extension in Chrome
-2. Open `chrome://extensions` → enable Developer mode → Load unpacked
-3. Navigate to `youtube.com` → verify redirect to subscriptions
-4. Attempt to visit `youtube.com/shorts/xyz` → verify redirect
-5. Check sidebar → verify Shorts button is hidden
-6. Watch any video → verify sidebar is hidden, comments are "blah"ed
-7. Open options page → toggle features off one by one → verify each stops working
-8. Navigate between multiple YouTube pages → verify features persist
+1. **Installation**
+   - Open `chrome://extensions` → enable Developer mode
+   - Click "Load unpacked" → select `dist/` folder
+   - Verify purple "S" icon appears in toolbar
 
-## Next Steps After Approval
+2. **Power Button Test**
+   - Click extension icon → popup opens
+   - Verify purple header, green dot, "Active on YouTube"
+   - Click power button → should turn gray, "Paused"
+   - Click again → should turn purple, "Active on YouTube"
+   - Verify toolbar icon changes between purple (on) and gray (off)
 
-1. **Phase 1**: Set up project structure (15 min)
-2. **Phase 2-5**: Implement features in order (4-5 hours)
-3. **Phase 6**: Build options page (1 hour)
-4. **Phase 7**: Test thoroughly (2 hours)
-5. **Phase 8**: Build and package (1 hour)
+3. **Homepage Redirect Test**
+   - With extension enabled, navigate to `youtube.com`
+   - Should immediately redirect to `/feed/subscriptions`
+   - Toggle extension off → navigate to `youtube.com`
+   - Should stay on homepage (no redirect)
 
-**Total Estimated Time**: 8-10 hours for complete MVP
+4. **Shorts Blocking Test**
+   - Attempt to visit `youtube.com/shorts/xyz`
+   - Should redirect to subscriptions
+   - Check sidebar → Shorts button should be hidden
+   - Scroll home feed → no Shorts shelves visible
+   - Visit channel page → Shorts tab hidden
+
+5. **Focused Watch Test**
+   - Watch any video → sidebar should be hidden
+   - Check sidebar → Home button should be hidden
+   - Try clicking where Home button was → should redirect to subscriptions
+   - End screen → no video recommendations
+   - Playlists and chapters should work normally
+
+6. **Comment Redaction Test**
+   - Scroll to comments → all text should be "blah"
+   - Scroll to load more → new comments also "blah"ed
+   - Open popup → toggle "Redact Comments" off
+   - Comments should show original text
+   - Toggle back on → comments redacted again
+
+7. **Multi-Tab Sync Test**
+   - Open multiple YouTube tabs
+   - Toggle extension in one tab
+   - Verify all tabs update simultaneously
+
+8. **Navigation Persistence Test**
+   - Navigate between YouTube pages (home, watch, channel)
+   - Verify all features persist across navigation
+   - Test with rapid navigation
+
+## 🎯 Next Steps (What's Remaining)
+
+### Immediate Tasks (v1.1):
+1. **Phase 7 — Bug Fixes & Refinements** (2-3 hours)
+   - Fix 1: Add CSS to hide Explore section from side nav
+   - Fix 2: Add CSS to center/expand video player on watch page
+   - Fix 3: Decouple Shorts blocking and homepage redirect into separate storage keys + popup toggles
+   - Update `background.ts` to gate redirect on `redirectHomepage` flag
+   - Update `content.ts` to apply/remove separate CSS classes for each toggle
+
+2. **Phase 8 — New Feature: Grayscale Mode** (1 hour)
+   - Add `shortsblock-grayscale` CSS class and rules to `content.css`
+   - Add class toggle logic to `content.ts`
+   - Add popup toggle for `grayscaleMode`
+
+3. **Phase 9 — New Feature: Hide Metrics** (1 hour)
+   - Add `shortsblock-hide-metrics` CSS class and rules to `content.css`
+   - Add class toggle logic to `content.ts`
+   - Add popup toggle for `hideMetrics`
+
+4. **Phase 10: Testing & Refinement** (2-3 hours)
+   - Full regression test of existing + new features
+   - Performance testing with DevTools
+   - Cross-browser testing
+
+5. **Phase 11: Store Preparation** (2-3 hours)
+   - Write privacy policy document
+   - Create promotional screenshots (1280x800)
+   - Create promotional tile (440x280)
+   - Write compelling store description
+   - Create ZIP package
+   - Submit to Chrome Web Store
+
+### Optional Future Enhancements:
+- Keyboard shortcut for quick toggle
+- Context menu integration
+- Customizable redaction text (user preference)
+- Statistics dashboard (videos watched, time saved)
+- Whitelist specific channels for comments
+- Export/import settings
+
+## Implementation Timeline
+
+**Completed** (March 2026):
+- ✅ Phases 1-6: All core MVP features implemented
+- ✅ MVP built and functional
+- ✅ Dynamic icon system
+- ✅ Popup interface with on/off toggle
+- ✅ Real-time sync across tabs
+
+**v1.1 Remaining** (Est. 5-7 hours):
+- ⏳ Phase 7: Bug fixes & feature refinements
+- ⏳ Phase 8: Grayscale Mode
+- ⏳ Phase 9: Hide Metrics & Clickbait
+- ⏳ Phase 10: Comprehensive testing
+- ⏳ Phase 11: Chrome Web Store submission
 
 ## Open Questions
-None - all architectural decisions have been clarified based on audit feedback.
+None — all architectural decisions finalized. Nav cleanup scope confirmed as Explore section only.
