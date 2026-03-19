@@ -1101,3 +1101,188 @@ YouTube frequently updates their DOM structure. Mitigation approach:
 
 ## Open Questions
 None — all architectural decisions finalized. Nav cleanup scope confirmed as Explore section only.
+
+---
+
+## Phase 12: UI Redesign ⏳ PENDING
+
+### Goal
+Redesign the extension popup to match a clean, premium aesthetic — consistent with the custom hourglass/pause icon branding. The design should feel like a native macOS/iOS utility app: dark, spacious, and minimal without over-relying on gradients or AI-generated-looking effects.
+
+---
+
+### Design Tokens
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--bg-base` | `#0F0A1E` | Popup body background |
+| `--bg-card` | `#1C1333` | Individual toggle card backgrounds |
+| `--bg-header` | `#1A0F30` | Header background (no gradient) |
+| `--accent-purple` | `#8B5CF6` | Active toggle colour, accent dots |
+| `--text-primary` | `#FFFFFF` | Toggle titles, header text |
+| `--text-muted` | `#9B8EC4` | Toggle subtitles / one-liners |
+| `--border-card` | `#2E2050` | Subtle card border |
+| `--radius-card` | `12px` | Toggle card corner radius |
+| `--radius-popup` | `16px` | Outer popup corner radius |
+
+**Typography:** System font stack (`-apple-system, BlinkMacSystemFont, "Inter", sans-serif`). No web fonts to keep the extension lightweight.
+
+**Spacing:** 20px horizontal padding, 12px vertical gap between cards, 16px internal card padding.
+
+---
+
+### Header
+
+- **Left:** Bold white `"ShortsBlock"` wordmark — no emoji, no icon inline.
+- **Right:** Circular button (44×44px, `--bg-card` background, `--border-card` border) containing the custom icon:
+  - **Extension ON →** hourglass icon (purple/lavender gradient outline style, matching the app icon)
+  - **Extension OFF →** pause icon (two rounded rectangles in muted lavender)
+  - Clicking this button **toggles the entire extension ON or OFF** (same behaviour as the current power button).
+- **Below title (inline):** Small status line — a coloured dot followed by plain text:
+  - ON: white dot + `"Active"`
+  - OFF: gray dot + `"Paused"`
+  - No pill/badge wrapper — just clean inline text.
+
+---
+
+### Popup States
+
+#### ON State
+- Header and body use the standard dark theme (tokens above).
+- All toggle cards are fully interactive.
+- Icon button displays the hourglass.
+
+#### OFF (Paused) State
+- A semi-transparent gray wash (`rgba(0,0,0,0.45)`) is applied over the entire body below the header — same approach as the current `.disabled` class.
+- All toggle cards become **non-interactive** (`pointer-events: none`, reduced opacity ~0.4).
+- The header itself stays fully visible and interactive (so the user can always re-enable the extension).
+- Icon button displays the pause icon.
+
+---
+
+### Toggle Rows
+
+Each feature toggle is rendered as its own card (`--bg-card`, `--radius-card`, `--border-card`). Layout: left-aligned label + subtitle, toggle switch pinned to the right.
+
+| # | Title | Subtitle (one-liner) | Storage Key | Default |
+|---|-------|----------------------|-------------|---------|
+| 1 | Block Shorts | *"The rabbit hole, sealed."* | `blockShorts` | `true` |
+| 2 | Redirect Homepage | *"Straight to what matters."* | `redirectHomepage` | `true` |
+| 3 | Grayscale Mode | *"Less clickbait, more substance."* | `grayscaleMode` | `false` |
+| 4 | Hide Metrics | *"The count doesn't count."* | `hideMetrics` | `false` |
+| 5 | Redact Comments | *"Blah blah blah."* | `redactComments` | `true` |
+
+---
+
+### Toggle Switch Component
+
+Use the **shadcn Bouncy Toggle** from 21st.dev instead of a hand-rolled CSS toggle:
+
+**Installation:**
+```bash
+npx shadcn@latest add https://21st.dev/r/jatin-yadav05/bouncy-toggle
+```
+
+**Source component** (`PremiumToggle` from `@/components/ui/bouncy-toggle`):
+
+```tsx
+"use client"
+
+import { useState } from "react"
+import { cn } from "@/lib/utils"
+
+interface PremiumToggleProps {
+  defaultChecked?: boolean
+  onChange?: (checked: boolean) => void
+  label?: string
+}
+
+export function PremiumToggle({ defaultChecked = false, onChange, label }: PremiumToggleProps) {
+  const [isChecked, setIsChecked] = useState(defaultChecked)
+  const [isPressed, setIsPressed] = useState(false)
+
+  const handleToggle = () => {
+    const newValue = !isChecked
+    setIsChecked(newValue)
+    onChange?.(newValue)
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      {label && (
+        <span className={cn(
+          "text-sm font-medium transition-colors duration-300",
+          isChecked ? "text-foreground" : "text-muted-foreground",
+        )}>
+          {label}
+        </span>
+      )}
+      <button
+        role="switch"
+        aria-checked={isChecked}
+        onClick={handleToggle}
+        onMouseDown={() => setIsPressed(true)}
+        onMouseUp={() => setIsPressed(false)}
+        onMouseLeave={() => setIsPressed(false)}
+        className={cn(
+          "group relative h-8 w-14 rounded-full p-1 transition-all duration-500 ease-out",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          isChecked ? "bg-foreground" : "bg-muted-foreground/20",
+        )}
+      >
+        <div className={cn(
+          "absolute inset-0 rounded-full transition-opacity duration-500",
+          isChecked ? "opacity-100 shadow-[0_0_20px_rgba(0,0,0,0.15)]" : "opacity-0",
+        )} />
+        <div className={cn(
+          "absolute inset-[2px] rounded-full transition-all duration-500",
+          isChecked ? "bg-gradient-to-b from-foreground to-foreground/90" : "bg-transparent",
+        )} />
+        <div className={cn(
+          "relative h-6 w-6 rounded-full shadow-lg transition-all duration-500 ease-[cubic-bezier(0.68,-0.55,0.265,1.55)]",
+          "bg-background",
+          isChecked ? "translate-x-6" : "translate-x-0",
+          isPressed && "scale-90 duration-150",
+        )}>
+          <div className="absolute inset-[2px] rounded-full bg-gradient-to-b from-background via-background to-muted/30" />
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-background/80 via-transparent to-transparent" />
+          <div className={cn(
+            "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-500",
+            isChecked
+              ? "h-2 w-2 bg-foreground opacity-100 scale-100"
+              : "h-1.5 w-1.5 bg-muted-foreground/40 opacity-100 scale-100",
+          )} />
+          <div
+            className={cn(
+              "absolute inset-0 rounded-full transition-all duration-700",
+              isChecked ? "animate-ping bg-foreground/20 scale-150 opacity-0" : "scale-100 opacity-0",
+            )}
+            key={isChecked ? "on" : "off"}
+          />
+        </div>
+      </button>
+    </div>
+  )
+}
+```
+
+**Integration notes:**
+- Wire `defaultChecked` from `chrome.storage.sync` on popup load.
+- Wire `onChange` to call `chrome.storage.sync.set({ [key]: newValue })`.
+- When the extension is paused, wrap each `PremiumToggle` in a container with `pointer-events: none; opacity: 0.4` — do not pass a disabled prop directly since the component does not expose one natively.
+- The `bg-foreground` active colour should map to `--accent-purple` (`#8B5CF6`) via the shadcn CSS variable theme, or override with a custom Tailwind colour if needed.
+
+---
+
+### Files to Create / Modify (UI Redesign)
+
+| File | Change |
+|------|--------|
+| `src/popup/popup.html` | Full restructure — header with icon button, status line, card-based toggle rows |
+| `src/popup/popup.css` | Replace existing styles with new design token system; add `.disabled` overlay |
+| `src/popup/popup.ts` | Update `updateUI()` to swap hourglass/pause icon; wire all 5 toggles |
+| `src/background.ts` | Update `updateIcon()` to use the new PNG icon assets instead of the generated "S" |
+| `public/icons/` | Replace existing icon PNGs with the new hourglass (ON) icon at 16, 32, 48, 128px |
+
+> **Decision: Option A — Port to vanilla JS/CSS.**
+> The popup stays as vanilla HTML/CSS/TS (no React, no Tailwind, no build changes). The `PremiumToggle` animation logic (bouncy cubic-bezier thumb, ripple ping, status dot) should be hand-translated into plain CSS transitions and a small JS class toggle. The component code above serves as the animation reference spec.
