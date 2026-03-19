@@ -24,8 +24,12 @@
       "run_at": "document_start"
     }
   ],
+  "icons": {
+    "128": "icons/icon-on.png"
+  },
   "action": {
-    "default_popup": "src/popup/popup.html"
+    "default_popup": "src/popup/popup.html",
+    "default_icon": "icons/icon-on.png"
   },
   "declarative_net_request": {
     "rule_resources": [

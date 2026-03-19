@@ -1,34 +1,13 @@
 // Background service worker
 
-// Generate a colored circle icon for the extension badge
-function generateIcon(color: string, size: number): ImageData {
-  const canvas = new OffscreenCanvas(size, size);
-  const ctx = canvas.getContext('2d')!;
-
-  // Background circle
-  ctx.beginPath();
-  ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
-  ctx.fillStyle = color;
-  ctx.fill();
-
-  // "S" letter in white
-  ctx.fillStyle = 'white';
-  ctx.font = `bold ${size * 0.55}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('S', size / 2, size / 2 + 1);
-
-  return ctx.getImageData(0, 0, size, size);
-}
-
 function updateIcon(enabled: boolean): void {
-  const color = enabled ? '#667eea' : '#999999';
+  const iconPath = enabled ? 'icons/icon-on.png' : 'icons/icon-off.png';
   chrome.action.setIcon({
-    imageData: {
-      16: generateIcon(color, 16),
-      32: generateIcon(color, 32),
-      48: generateIcon(color, 48),
-      128: generateIcon(color, 128)
+    path: {
+      "16": iconPath,
+      "32": iconPath,
+      "48": iconPath,
+      "128": iconPath
     }
   });
 }

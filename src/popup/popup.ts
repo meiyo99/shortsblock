@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const powerBtn = document.getElementById('powerBtn')!;
+  const powerIcon = document.getElementById('powerIcon') as HTMLImageElement;
   const popup = document.getElementById('popup')!;
   const statusDot = document.getElementById('statusDot')!;
   const statusText = document.getElementById('statusText')!;
@@ -15,12 +16,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (enabled) {
       popup.classList.remove('disabled');
       statusDot.classList.remove('off');
-      statusText.textContent = 'Active on YouTube';
+      statusText.textContent = 'Active';
+      powerIcon.src = chrome.runtime.getURL('icons/icon-on.png');
       featureToggles.forEach(t => t.disabled = false);
     } else {
       popup.classList.add('disabled');
       statusDot.classList.add('off');
       statusText.textContent = 'Paused';
+      powerIcon.src = chrome.runtime.getURL('icons/icon-off.png');
       featureToggles.forEach(t => t.disabled = true);
     }
   }
