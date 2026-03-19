@@ -7,8 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const blockShortsCheckbox = document.getElementById('blockShorts');
     const redirectHomepageCheckbox = document.getElementById('redirectHomepage');
     const grayscaleModeCheckbox = document.getElementById('grayscaleMode');
+    const hideMetricsCheckbox = document.getElementById('hideMetrics');
     const redactCheckbox = document.getElementById('redactComments');
-    const featureToggles = [blockShortsCheckbox, redirectHomepageCheckbox, grayscaleModeCheckbox, redactCheckbox];
+    const featureToggles = [blockShortsCheckbox, redirectHomepageCheckbox, grayscaleModeCheckbox, hideMetricsCheckbox, redactCheckbox];
     function updateUI(enabled) {
         if (enabled) {
             popup.classList.remove('disabled');
@@ -29,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         blockShorts: true,
         redirectHomepage: true,
         grayscaleMode: false,
+        hideMetrics: false,
         redactComments: true
     }, (result) => {
         const enabled = result.extensionEnabled !== false;
@@ -36,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         blockShortsCheckbox.checked = result.blockShorts !== false;
         redirectHomepageCheckbox.checked = result.redirectHomepage !== false;
         grayscaleModeCheckbox.checked = result.grayscaleMode === true;
+        hideMetricsCheckbox.checked = result.hideMetrics === true;
         redactCheckbox.checked = result.redactComments !== false;
     });
     // Power button toggle
@@ -61,6 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     grayscaleModeCheckbox.addEventListener('change', () => {
         chrome.storage.sync.set({ grayscaleMode: grayscaleModeCheckbox.checked }, () => {
+            showStatus('Saved!');
+        });
+    });
+    hideMetricsCheckbox.addEventListener('change', () => {
+        chrome.storage.sync.set({ hideMetrics: hideMetricsCheckbox.checked }, () => {
             showStatus('Saved!');
         });
     });

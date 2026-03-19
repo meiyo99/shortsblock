@@ -7,6 +7,7 @@ function applyAllClasses() {
         blockShorts: true,
         redirectHomepage: true,
         grayscaleMode: false,
+        hideMetrics: false,
     }, (result) => {
         const enabled = result.extensionEnabled !== false;
         // Master class (controls focused watch, explore hiding)
@@ -17,13 +18,15 @@ function applyAllClasses() {
         document.documentElement.classList.toggle('shortsblock-redirect-on', enabled && result.redirectHomepage !== false);
         // Grayscale mode (independent toggle)
         document.documentElement.classList.toggle('shortsblock-grayscale', enabled && result.grayscaleMode === true);
+        // Hide metrics (independent toggle)
+        document.documentElement.classList.toggle('shortsblock-hide-metrics', enabled && result.hideMetrics === true);
     });
 }
 // Apply immediately
 applyAllClasses();
 // Listen for storage changes (user toggled on/off from popup)
 chrome.storage.onChanged.addListener((changes) => {
-    if (changes.extensionEnabled || changes.blockShorts || changes.redirectHomepage || changes.grayscaleMode) {
+    if (changes.extensionEnabled || changes.blockShorts || changes.redirectHomepage || changes.grayscaleMode || changes.hideMetrics) {
         applyAllClasses();
     }
 });

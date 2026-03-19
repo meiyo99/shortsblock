@@ -6,9 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const blockShortsCheckbox = document.getElementById('blockShorts') as HTMLInputElement;
   const redirectHomepageCheckbox = document.getElementById('redirectHomepage') as HTMLInputElement;
   const grayscaleModeCheckbox = document.getElementById('grayscaleMode') as HTMLInputElement;
+  const hideMetricsCheckbox = document.getElementById('hideMetrics') as HTMLInputElement;
   const redactCheckbox = document.getElementById('redactComments') as HTMLInputElement;
 
-  const featureToggles = [blockShortsCheckbox, redirectHomepageCheckbox, grayscaleModeCheckbox, redactCheckbox];
+  const featureToggles = [blockShortsCheckbox, redirectHomepageCheckbox, grayscaleModeCheckbox, hideMetricsCheckbox, redactCheckbox];
 
   function updateUI(enabled: boolean): void {
     if (enabled) {
@@ -30,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     blockShorts: true,
     redirectHomepage: true,
     grayscaleMode: false,
+    hideMetrics: false,
     redactComments: true
   }, (result) => {
     const enabled = result.extensionEnabled !== false;
@@ -37,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     blockShortsCheckbox.checked = result.blockShorts !== false;
     redirectHomepageCheckbox.checked = result.redirectHomepage !== false;
     grayscaleModeCheckbox.checked = result.grayscaleMode === true;
+    hideMetricsCheckbox.checked = result.hideMetrics === true;
     redactCheckbox.checked = result.redactComments !== false;
   });
 
@@ -66,6 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   grayscaleModeCheckbox.addEventListener('change', () => {
     chrome.storage.sync.set({ grayscaleMode: grayscaleModeCheckbox.checked }, () => {
+      showStatus('Saved!');
+    });
+  });
+
+  hideMetricsCheckbox.addEventListener('change', () => {
+    chrome.storage.sync.set({ hideMetrics: hideMetricsCheckbox.checked }, () => {
       showStatus('Saved!');
     });
   });

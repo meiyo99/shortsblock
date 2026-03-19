@@ -95,3 +95,44 @@ html.shortsblock-grayscale .html5-video-container video {
   filter: grayscale(0%) !important;
 }
 
+/* ==========================================
+   v1.1: Hide Metrics
+   Hide view counts, subscriber counts, dates, likes
+   ========================================== */
+
+/* Hide view counts and publish dates on video cards in feed */
+html.shortsblock-hide-metrics #metadata-line,
+html.shortsblock-hide-metrics ytd-video-meta-block #metadata-line,
+html.shortsblock-hide-metrics ytd-grid-video-renderer #metadata-line,
+html.shortsblock-hide-metrics ytd-rich-grid-media #metadata-line {
+  display: none !important;
+}
+
+/* Hide view counts and dates in new yt-content-metadata-view-model tiles */
+html.shortsblock-hide-metrics .yt-content-metadata-view-model__metadata-row {
+  display: none !important;
+}
+
+/* Hide subscriber count */
+html.shortsblock-hide-metrics #subscriber-count,
+html.shortsblock-hide-metrics #owner-sub-count,
+html.shortsblock-hide-metrics yt-formatted-string#subscriber-count {
+  display: none !important;
+}
+
+/* Hide view count and date on watch page */
+html.shortsblock-hide-metrics ytd-watch-metadata #info-container,
+html.shortsblock-hide-metrics ytd-watch-info-text #info-container,
+html.shortsblock-hide-metrics ytd-video-primary-info-renderer #info-text,
+html.shortsblock-hide-metrics ytd-watch-metadata ytd-badge-supported-renderer,
+html.shortsblock-hide-metrics #info.ytd-video-primary-info-renderer {
+  display: none !important;
+}
+
+/* Hide like count on watch page */
+html.shortsblock-hide-metrics like-button-view-model .yt-spec-button-shape-next__button-text-content,
+html.shortsblock-hide-metrics segmented-like-dislike-button-view-model .yt-spec-button-shape-next__button-text-content,
+html.shortsblock-hide-metrics ytd-toggle-button-renderer yt-formatted-string {
+  display: none !important;
+}
+
