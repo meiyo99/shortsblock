@@ -53,5 +53,11 @@ coverage/
 .nyc_output
 testsprite_tests/
 
+# Promotional assets (large images)
+promotional-assets/
+
 # Documentation
 docs/
+
+# Store submission package
+*.zip
